@@ -14,17 +14,126 @@ datasource db {
 }
 
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
-  posts Post[]
+  id              String   @id @default(uuid())
+  email           String   @unique
+  passwordHash    String
+  name            String?
+  isEmailVerified Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  memberships   Membership[]
+  sessions      Session[]
+  organizations Organization[]
 }
 
-model Post {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String?
-  published Boolean? @default(false)
-  author    User?    @relation(fields: [authorId], references: [id])
-  authorId  Int?
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  ownerId   String
+  createdAt DateTime @default(now())
+
+  owner        User          @relation(fields: [ownerId], references: [id])
+  members      Membership[]
+  projects     Project[]
+  subscription Subscription?
+}
+
+model Membership {
+  id             String   @id @default(uuid())
+  userId         String
+  organizationId String
+  role           Role
+  createdAt      DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([userId, organizationId])
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Project {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  description    String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  tasks        Task[]
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  projectId   String
+  title       String
+  description String?
+  status      TaskStatus @default(TODO)
+  assigneeId  String?
+  createdAt   DateTime   @default(now())
+
+  project Project @relation(fields: [projectId], references: [id])
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+model Subscription {
+  id               String    @id @default(uuid())
+  organizationId   String    @unique
+  stripeCustomerId String
+  stripeSubId      String
+  plan             Plan
+  status           SubStatus
+  currentPeriodEnd DateTime
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+}
+
+enum Plan {
+  FREE
+  PRO
+  TEAM
+}
+
+enum SubStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+model Invite {
+  id             String   @id @default(uuid())
+  email          String
+  organizationId String
+  role           Role
+  token          String   @unique
+  expiresAt      DateTime
+  accepted       Boolean  @default(false)
+}
+
+model ActivityLog {
+  id             String   @id @default(uuid())
+  organizationId String
+  userId         String
+  action         String
+  metadata       Json?
+  createdAt      DateTime @default(now())
 }
