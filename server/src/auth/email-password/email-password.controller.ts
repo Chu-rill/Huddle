@@ -1,34 +1,39 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  HttpStatus,
+  HttpCode,
+  UsePipes,
+} from '@nestjs/common';
 import { EmailPasswordService } from './email-password.service';
-import { CreateEmailPasswordDto } from './dto/create-email-password.dto';
-import { UpdateEmailPasswordDto } from './dto/update-email-password.dto';
+import {
+  LoginSchema,
+  SignupSchema,
+  type LoginDto,
+  type SignupDto,
+} from './validation';
+import { ZodPipe } from 'src/utils/schema-validation/validation.pipe';
 
-@Controller('email-password')
+@Controller('auth/email-password')
 export class EmailPasswordController {
   constructor(private readonly emailPasswordService: EmailPasswordService) {}
 
-  @Post()
-  create(@Body() createEmailPasswordDto: CreateEmailPasswordDto) {
-    return this.emailPasswordService.create(createEmailPasswordDto);
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  @UsePipes(new ZodPipe(SignupSchema))
+  async register(@Body() registerDto: SignupDto) {
+    return this.emailPasswordService.register(registerDto);
   }
 
-  @Get()
-  findAll() {
-    return this.emailPasswordService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.emailPasswordService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateEmailPasswordDto: UpdateEmailPasswordDto) {
-    return this.emailPasswordService.update(+id, updateEmailPasswordDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.emailPasswordService.remove(+id);
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(new ZodPipe(LoginSchema))
+  async login(@Body() loginDto: LoginDto) {
+    return this.emailPasswordService.login(loginDto);
   }
 }
