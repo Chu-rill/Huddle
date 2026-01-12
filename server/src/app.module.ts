@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
@@ -9,9 +10,14 @@ import { TasksModule } from './tasks/tasks.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { EmailPasswordModule } from './auth/email-password/email-password.module';
 import { GoogleModule } from './auth/google/google.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
     UsersModule,
     OrganizationsModule,
     BillingModule,
@@ -20,6 +26,7 @@ import { GoogleModule } from './auth/google/google.module';
     NotificationsModule,
     EmailPasswordModule,
     GoogleModule,
+    PrismaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
