@@ -9,6 +9,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { EmailPasswordModule } from './auth/email-password/email-password.module';
 import { GoogleModule } from './auth/google/google.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { GoogleModule } from './auth/google/google.module';
     NotificationsModule,
     EmailPasswordModule,
     GoogleModule,
+    PrismaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
