@@ -1,0 +1,186 @@
+import { Injectable, Logger } from '@nestjs/common';
+import * as nodemailer from 'nodemailer';
+import * as fs from 'fs/promises';
+import * as handlebars from 'handlebars';
+import * as path from 'path';
+import { ConfigService } from '@nestjs/config';
+import { Resend } from 'resend';
+
+@Injectable()
+export class EmailService {
+  private readonly logger = new Logger(EmailService.name);
+  private transporter: nodemailer.Transporter;
+  private resend: Resend;
+  private useResend: boolean;
+  private welcomeTemplatePath: string;
+
+  constructor(private readonly configService: ConfigService) {
+    // Check if Resend API key is provided
+    const resendApiKey = configService.get<string>('RESEND_API_KEY');
+    this.useResend = !!resendApiKey;
+
+    if (this.useResend) {
+      this.resend = new Resend(resendApiKey);
+      this.logger.log('Email service initialized with Resend');
+    } else {
+      // Fallback to SMTP (for local development)
+      const port = Number(configService.get<string>('SERVICE_PORT'));
+      this.transporter = nodemailer.createTransport({
+        host: configService.get<string>('EMAIL_PROVIDER'),
+        port: port,
+        secure: port === 465, // true for 465, false for other ports
+        service: 'gmail',
+        auth: {
+          user: configService.get<string>('EMAIL_USER'),
+          pass: configService.get<string>('EMAIL_PASS'),
+        },
+        // Increase timeout for cloud environments
+        connectionTimeout: 60000, // 60 seconds
+        greetingTimeout: 30000, // 30 seconds
+        socketTimeout: 60000, // 60 seconds
+      });
+      this.logger.log('Email service initialized with SMTP');
+    }
+
+    this.welcomeTemplatePath = path.join(
+      process.cwd(),
+      'src/views/welcome.hbs',
+    );
+  }
+
+  // Method to read the email template file based on a path
+  private async readTemplateFile(templatePath: string): Promise<string> {
+    try {
+      return await fs.readFile(templatePath, 'utf-8');
+    } catch (error) {
+      throw new Error(`Error reading email template file: ${error}`);
+    }
+  }
+
+  // Send an email to verify the users account
+  async sendWelcomeEmail(
+    email: string,
+    data: { subject: string; username: string; otp: string },
+  ): Promise<void> {
+    try {
+      const templateSource = await this.readTemplateFile(
+        this.welcomeTemplatePath,
+      );
+      const emailTemplate = handlebars.compile(templateSource);
+      const htmlContent = emailTemplate({
+        name: data.username,
+        otp: data.otp,
+      });
+
+      if (this.useResend) {
+        // Use configured email or fall back to the Resend account owner's email for testing
+        const fromEmail =
+          this.configService.get<string>('RESEND_FROM_EMAIL') ||
+          this.configService.get<string>('EMAIL_USER') ||
+          'banter@churchilldaniel.dev';
+
+        const { data: resendData, error } = await this.resend.emails.send({
+          from: `Huddle <${fromEmail}>`,
+          to: [email],
+          subject: data.subject,
+          html: htmlContent,
+        });
+
+        if (error) {
+          throw new Error(`Resend error: ${error.message}`);
+        }
+
+        this.logger.log(
+          `Welcome email sent successfully to ${email}. MessageId: ${resendData.id}`,
+        );
+      } else {
+        const info = await this.transporter.sendMail({
+          from: this.configService.get<string>('EMAIL_USER'),
+          to: email,
+          subject: data.subject,
+          html: htmlContent,
+        });
+
+        this.logger.log(
+          `Welcome email sent successfully to ${email}. MessageId: ${info.messageId}`,
+        );
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
+      this.logger.error(
+        `Failed to send welcome email to ${email}: ${errorMessage}`,
+        error,
+      );
+
+      console.error(
+        `Error sending email with template: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  async sendWelcomeEmailOauth(
+    email: string,
+    data: { subject: string; username: string; token: string },
+  ): Promise<void> {
+    try {
+      const verifyUrl = this.configService.get('LOGIN_URL');
+      const templateSource = await this.readTemplateFile(
+        this.welcomeTemplatePath,
+      );
+      const emailTemplate = handlebars.compile(templateSource);
+      const htmlContent = emailTemplate({
+        appName: 'Banter',
+        username: data.username,
+        verificationLink: verifyUrl,
+        title: 'Verification Email',
+      });
+
+      if (this.useResend) {
+        const fromEmail =
+          this.configService.get<string>('RESEND_FROM_EMAIL') ||
+          this.configService.get<string>('EMAIL_USER') ||
+          'onboarding@resend.dev';
+
+        const { data: resendData, error } = await this.resend.emails.send({
+          from: `Banter <${fromEmail}>`,
+          to: [email],
+          subject: data.subject,
+          html: htmlContent,
+        });
+
+        if (error) {
+          throw new Error(`Resend error: ${error.message}`);
+        }
+
+        this.logger.log(
+          `Welcome email sent successfully to ${email}. MessageId: ${resendData.id}`,
+        );
+      } else {
+        const info = await this.transporter.sendMail({
+          from: this.configService.get<string>('EMAIL_USER'),
+          to: email,
+          subject: data.subject,
+          html: htmlContent,
+        });
+
+        this.logger.log(
+          `Welcome email sent successfully to ${email}. MessageId: ${info.messageId}`,
+        );
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
+      this.logger.error(
+        `Failed to send welcome email to ${email}: ${errorMessage}`,
+        error,
+      );
+
+      console.error(
+        `Error sending email with template: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+}

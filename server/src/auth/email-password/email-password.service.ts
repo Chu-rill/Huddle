@@ -15,6 +15,8 @@ import {
 
 import { UserRepository } from 'src/users/users.repository';
 import { LoginDto, SignupDto } from './validation';
+import { EmailService } from 'src/email/email.service';
+import { OtpService } from 'src/otp/otp.service';
 
 @Injectable()
 export class EmailPasswordService {
@@ -22,6 +24,8 @@ export class EmailPasswordService {
 
   constructor(
     private readonly userRepository: UserRepository,
+    private readonly emailService: EmailService,
+    private readonly otpService: OtpService,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -56,6 +60,22 @@ export class EmailPasswordService {
       );
 
       this.logger.log(`User created successfully with ID: ${user.id}`);
+
+      // Generate and send OTP
+      try {
+        this.logger.debug(
+          `Generating OTP for email verification for: ${email}`,
+        );
+        const otp = await this.otpService.generateOTP(email);
+        const data = {
+          subject: 'Huddle Validation',
+          username: user.username || 'User',
+          otp: otp,
+        };
+        await this.emailService.sendWelcomeEmail(email, data);
+      } catch (error) {
+        this.logger.error(`Failed to generate OTP for email ${email}:`, error);
+      }
 
       this.logger.log(
         `Registration completed successfully for user: ${user.id}`,
