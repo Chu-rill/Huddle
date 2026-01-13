@@ -11,6 +11,8 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { EmailPasswordModule } from './auth/email-password/email-password.module';
 import { GoogleModule } from './auth/google/google.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { EmailModule } from './email/email.module';
+import { OtpModule } from './otp/otp.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { PrismaModule } from './prisma/prisma.module';
     EmailPasswordModule,
     GoogleModule,
     PrismaModule,
+    EmailModule,
+    OtpModule,
   ],
   controllers: [AppController],
   providers: [AppService],

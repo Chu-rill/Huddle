@@ -6,13 +6,14 @@ let port = process.env.SERVER_PORT ? parseInt(process.env.SERVER_PORT) : 3000;
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  await app.listen(port);
 
   // Security middleware
   app.use(helmet());
 
   // Global prefix
   app.setGlobalPrefix('/api/v1');
+
+  await app.listen(port);
 
   console.log(`🚀 Huddle Server started successfully!`);
   console.log(`📍 Server: http://localhost:${port}`);
