@@ -28,6 +28,17 @@ export const LoginSchema = z.object({
     ),
 });
 
+export const otp = z.object({
+  email: z.string().email({ message: 'Invalid email format' }),
+  OTP: z.string().min(1, { message: 'OTP is required' }),
+});
+
+export const resendOtp = z.object({
+  email: z.string().email({ message: 'Invalid email format' }),
+});
+
 // Type inference from Zod schemas
 export type SignupDto = z.infer<typeof SignupSchema>;
 export type LoginDto = z.infer<typeof LoginSchema>;
+export type CreateOTPDto = z.infer<typeof otp>;
+export type ResendOTPDto = z.infer<typeof resendOtp>;
