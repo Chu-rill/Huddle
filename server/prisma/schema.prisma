@@ -42,6 +42,8 @@ model Session {
   userId    String
   token     String   @unique
   expiresAt DateTime
+  createdAt DateTime @default(now())
+  revoked   Boolean  @default(false)
   user      User     @relation(fields: [userId], references: [id])
 }
 

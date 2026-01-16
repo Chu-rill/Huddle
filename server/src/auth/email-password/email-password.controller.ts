@@ -12,7 +12,11 @@ import {
 } from '@nestjs/common';
 import { EmailPasswordService } from './email-password.service';
 import {
+  CreateOTPDto,
   LoginSchema,
+  otp,
+  resendOtp,
+  ResendOTPDto,
   SignupSchema,
   type LoginDto,
   type SignupDto,
@@ -35,5 +39,27 @@ export class EmailPasswordController {
   @UsePipes(new ZodPipe(LoginSchema))
   async login(@Body() loginDto: LoginDto) {
     return this.emailPasswordService.login(loginDto);
+  }
+
+  @Post('/validateOTP')
+  @UsePipes(new ZodPipe(otp))
+  ValidateOTP(@Body() dto: CreateOTPDto) {
+    return this.emailPasswordService.validateOTP(dto);
+  }
+
+  @Post('/resendOTP')
+  @UsePipes(new ZodPipe(resendOtp))
+  resendOTP(@Body() dto: ResendOTPDto) {
+    return this.emailPasswordService.resendOTP(dto);
+  }
+
+  @Post('/refresh')
+  async refreshToken(@Body('refreshToken') refreshToken: string) {
+    return this.emailPasswordService.refreshAccessToken(refreshToken);
+  }
+
+  @Post('/revoke')
+  async revokeToken(@Body('refreshToken') refreshToken: string) {
+    return this.emailPasswordService.revokeRefreshToken(refreshToken);
   }
 }
