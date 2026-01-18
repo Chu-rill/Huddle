@@ -111,7 +111,7 @@ export class EmailPasswordService {
     try {
       // Find user
       this.logger.debug(`Looking up user with email: ${email}`);
-      const user = await this.userRepository.getUserByEmail(email);
+      const user = await this.userRepository.getUserByEmailForLogin(email);
 
       if (!user) {
         this.logger.warn(`Login failed: User not found with email: ${email}`);
@@ -139,14 +139,7 @@ export class EmailPasswordService {
         );
       }
 
-      // Create JWT payload with only necessary fields (match OAuth format)
-      const payload = {
-        id: user.id,
-        username: user.username,
-      };
-
-      const accessToken = await this.jwtService.signAsync(payload);
-
+      const accessToken = await this.generateAuthToken(user.id);
       // Generate refresh token
       await this.cleanupOldRefreshTokens(user.id);
       const refreshToken = await this.generateRefreshToken(user.id);
@@ -187,13 +180,7 @@ export class EmailPasswordService {
     // Mark user as verified
     await this.userRepository.verifyUser(dto.email);
 
-    // Create JWT payload with only necessary fields (match OAuth and login format)
-    const payload = {
-      id: user.id,
-      username: user.username,
-    };
-
-    const token = await this.jwtService.signAsync(payload);
+    const token = await this.generateAuthToken(user.id);
 
     // Generate refresh token
     await this.cleanupOldRefreshTokens(user.id);
@@ -265,13 +252,7 @@ export class EmailPasswordService {
         throw new UnauthorizedException('Refresh token has been revoked');
       }
 
-      // Generate new access token
-      const payload = {
-        id: tokenRecord.user.id,
-        username: tokenRecord.user.username,
-      };
-
-      const newAccessToken = await this.jwtService.signAsync(payload);
+      const newAccessToken = await this.generateAuthToken(tokenRecord.user.id);
 
       // Optionally rotate refresh token for enhanced security
       // Delete old refresh token and create new one
@@ -332,7 +313,7 @@ export class EmailPasswordService {
   }
 
   // Helper method to generate refresh token
-  private async generateRefreshToken(userId: string): Promise<string> {
+  async generateRefreshToken(userId: string): Promise<string> {
     const refreshToken = crypto.randomBytes(64).toString('hex');
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
@@ -346,6 +327,19 @@ export class EmailPasswordService {
     });
 
     return refreshToken;
+  }
+
+  // Helper method to generate auth token
+  async generateAuthToken(userId: string): Promise<string> {
+    const user = await this.userRepository.getUserById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    const payload = {
+      id: user.id,
+      username: user.username,
+    };
+    return this.jwtService.signAsync(payload);
   }
 
   // Helper method to clean up old refresh tokens for a user
