@@ -23,5 +23,6 @@ import { OtpModule } from 'src/otp/otp.module';
   ],
   controllers: [EmailPasswordController],
   providers: [EmailPasswordService],
+  exports: [EmailPasswordService],
 })
 export class EmailPasswordModule {}

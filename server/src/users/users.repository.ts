@@ -33,12 +33,27 @@ export class UserRepository {
         username: true,
         email: true,
         createdAt: true,
+        isEmailVerified: true,
       },
     });
     return user;
   }
 
   async getUserByEmail(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        createdAt: true,
+        isEmailVerified: true,
+      },
+    });
+    return user;
+  }
+
+  async getUserByEmailForLogin(email: string) {
     const user = await this.prisma.user.findUnique({
       where: { email },
       select: {

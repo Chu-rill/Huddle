@@ -1,34 +1,40 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Req,
+  Res,
+} from '@nestjs/common';
+import { Response } from 'express';
+import { ConfigService } from '@nestjs/config';
 import { GoogleService } from './google.service';
-import { CreateGoogleDto } from './dto/create-google.dto';
-import { UpdateGoogleDto } from './dto/update-google.dto';
+import { GoogleGuard } from 'src/guard/google.guard';
 
-@Controller('google')
+@Controller('oauth')
 export class GoogleController {
-  constructor(private readonly googleService: GoogleService) {}
+  constructor(
+    private readonly googleService: GoogleService,
+    private readonly configService: ConfigService,
+  ) {}
 
-  @Post()
-  create(@Body() createGoogleDto: CreateGoogleDto) {
-    return this.googleService.create(createGoogleDto);
+  @Get('google')
+  @UseGuards(GoogleGuard)
+  async googleAuth(@Req() req) {
+    // This triggers the Google OAuth flow
   }
 
-  @Get()
-  findAll() {
-    return this.googleService.findAll();
-  }
+  @Get('google/callback')
+  @UseGuards(GoogleGuard)
+  async googleAuthRedirect(@Req() req, @Res() res: Response) {
+    const result = await this.googleService.validateOAuthGoogleLogin(req);
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.googleService.findOne(+id);
-  }
+    // const redirectUrl = `${this.configService.get<string>(
+    //   'FRONTEND_REDIRECT_URL',
+    // )}?token=${result.token}`;
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateGoogleDto: UpdateGoogleDto) {
-    return this.googleService.update(+id, updateGoogleDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.googleService.remove(+id);
+    // return res.redirect(redirectUrl);
+    return result;
   }
 }
