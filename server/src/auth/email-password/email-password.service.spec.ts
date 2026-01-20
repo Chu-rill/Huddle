@@ -47,6 +47,8 @@ describe('EmailPasswordService', () => {
           provide: UserRepository,
           useValue: {
             getUserByEmail: jest.fn(),
+            getUserByEmailForLogin: jest.fn(),
+            getUserById: jest.fn(),
             createUser: jest.fn(),
             verifyUser: jest.fn(),
           },
@@ -204,13 +206,14 @@ describe('EmailPasswordService', () => {
     });
 
     it('should successfully login a verified user', async () => {
-      userRepository.getUserByEmail.mockResolvedValue(mockUser);
+      userRepository.getUserByEmailForLogin.mockResolvedValue(mockUser);
+      userRepository.getUserById.mockResolvedValue(mockUser);
       (encryption.comparePassword as jest.Mock).mockResolvedValue(true);
       jwtService.signAsync.mockResolvedValue('access-token');
 
       const result = await service.login(loginDto);
 
-      expect(userRepository.getUserByEmail).toHaveBeenCalledWith(
+      expect(userRepository.getUserByEmailForLogin).toHaveBeenCalledWith(
         loginDto.email,
       );
       expect(encryption.comparePassword).toHaveBeenCalledWith(
@@ -236,7 +239,7 @@ describe('EmailPasswordService', () => {
     });
 
     it('should throw UnauthorizedException if user not found', async () => {
-      userRepository.getUserByEmail.mockResolvedValue(null);
+      userRepository.getUserByEmailForLogin.mockResolvedValue(null);
 
       await expect(service.login(loginDto)).rejects.toThrow(
         UnauthorizedException,
@@ -245,7 +248,7 @@ describe('EmailPasswordService', () => {
     });
 
     it('should throw UnauthorizedException if password is invalid', async () => {
-      userRepository.getUserByEmail.mockResolvedValue(mockUser);
+      userRepository.getUserByEmailForLogin.mockResolvedValue(mockUser);
       (encryption.comparePassword as jest.Mock).mockResolvedValue(false);
 
       await expect(service.login(loginDto)).rejects.toThrow(
@@ -256,7 +259,7 @@ describe('EmailPasswordService', () => {
 
     it('should throw UnauthorizedException if email is not verified', async () => {
       const unverifiedUser = { ...mockUser, isEmailVerified: false };
-      userRepository.getUserByEmail.mockResolvedValue(unverifiedUser);
+      userRepository.getUserByEmailForLogin.mockResolvedValue(unverifiedUser);
       (encryption.comparePassword as jest.Mock).mockResolvedValue(true);
 
       await expect(service.login(loginDto)).rejects.toThrow(
@@ -265,7 +268,7 @@ describe('EmailPasswordService', () => {
     });
 
     it('should throw InternalServerErrorException on unexpected error', async () => {
-      userRepository.getUserByEmail.mockRejectedValue(
+      userRepository.getUserByEmailForLogin.mockRejectedValue(
         new Error('Database error'),
       );
 
@@ -296,6 +299,7 @@ describe('EmailPasswordService', () => {
 
     it('should successfully validate OTP and verify user', async () => {
       userRepository.getUserByEmail.mockResolvedValue(mockUser);
+      userRepository.getUserById.mockResolvedValue(mockUser);
       otpService.verifyOTP.mockResolvedValue(undefined);
       userRepository.verifyUser.mockResolvedValue(mockUser);
       jwtService.signAsync.mockResolvedValue('access-token');
@@ -405,6 +409,7 @@ describe('EmailPasswordService', () => {
         ...tokenRecord,
         token: 'new-refresh-token',
       });
+      userRepository.getUserById.mockResolvedValue(mockUser);
       jwtService.signAsync.mockResolvedValue('new-access-token');
 
       const result = await service.refreshAccessToken(refreshToken);
