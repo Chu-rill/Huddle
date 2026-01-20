@@ -18,5 +18,7 @@ jobs:
           version: 9
       - name: Install dependencies
         run: cd server && pnpm install --frozen-lockfile
+      - name: Generate Prisma Client
+        run: cd server && pnpm prisma generate
       - name: Run tests
         run: cd server && pnpm test
