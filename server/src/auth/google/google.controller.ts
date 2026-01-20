@@ -30,11 +30,6 @@ export class GoogleController {
   async googleAuthRedirect(@Req() req, @Res() res: Response) {
     const result = await this.googleService.validateOAuthGoogleLogin(req);
 
-    // const redirectUrl = `${this.configService.get<string>(
-    //   'FRONTEND_REDIRECT_URL',
-    // )}?token=${result.token}`;
-
-    // return res.redirect(redirectUrl);
-    return result;
+    return res.json(result);
   }
 }
