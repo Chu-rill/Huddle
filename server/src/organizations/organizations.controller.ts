@@ -1,13 +1,35 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  UsePipes,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { OrganizationsService } from './organizations.service';
-import { CreateOrganizationDto } from './dto/create-organization.dto';
-import { UpdateOrganizationDto } from './dto/update-organization.dto';
 
+import { JwtAuthGuard } from 'src/guard/auth.guard';
+import {
+  CreateOrganizationDto,
+  CreateOrganizationSchema,
+  UpdateOrganizationDto,
+  UpdateOrganizationSchema,
+} from './validation';
+import { ZodPipe } from 'src/utils/schema-validation/validation.pipe';
+
+@UseGuards(JwtAuthGuard)
 @Controller('organizations')
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @UsePipes(new ZodPipe(CreateOrganizationSchema))
   create(@Body() createOrganizationDto: CreateOrganizationDto) {
     return this.organizationsService.create(createOrganizationDto);
   }
@@ -19,16 +41,20 @@ export class OrganizationsController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.organizationsService.findOne(+id);
+    return this.organizationsService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrganizationDto: UpdateOrganizationDto) {
-    return this.organizationsService.update(+id, updateOrganizationDto);
+  @UsePipes(new ZodPipe(UpdateOrganizationSchema))
+  update(
+    @Param('id') id: string,
+    @Body() updateOrganizationDto: UpdateOrganizationDto,
+  ) {
+    return this.organizationsService.update(id, updateOrganizationDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.organizationsService.remove(+id);
+    return this.organizationsService.remove(id);
   }
 }
